@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { EYEBROW } from '@/components/inner/InnerPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { TeamSection } from '@/components/company/TeamSection';
+import { fetchTeamMembers } from '@/lib/blog-api';
 import {
   ABOUT,
   MISSION,
@@ -22,7 +23,8 @@ export const metadata: Metadata = pageMetadata({
   description: DESCRIPTION,
 });
 
-export default function WhoWeAreRoute() {
+export default async function WhoWeAreRoute() {
+  const apiMembers = await fetchTeamMembers(3000);
   return (
     <>
       <JsonLd data={pageJsonLd({ page: PAGE, description: DESCRIPTION, type: 'AboutPage' })} />
@@ -318,7 +320,7 @@ export default function WhoWeAreRoute() {
       </main>
 
       {/* Dynamic 3D Team Member Showcase Carousel (Left Completely Untouched as Requested) */}
-      <TeamSection />
+      <TeamSection initialApiMembers={apiMembers} />
     </>
   );
 }

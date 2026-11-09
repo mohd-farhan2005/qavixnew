@@ -3,13 +3,78 @@ import Link from 'next/link';
 import { reveal, stagger } from '@/lib/reveal';
 import { fetchBlogList, BlogPost } from '@/lib/blog-api';
 
-export async function BlogPreview() {
-  const { blogs } = await fetchBlogList({ per_page: 3 });
+const FALLBACK_BLOGS: BlogPost[] = [
+  {
+    id: 1,
+    title: 'Mastering SEO in Modern React & Single Page Applications',
+    slug: 'mastering-seo-in-modern-react',
+    excerpt:
+      'Single Page Applications (SPAs) often face indexing hurdles. Discover how to conquer search rankings with server components and metadata optimization.',
+    content: '',
+    featured_image:
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
+    featured_image_alt: 'Mastering SEO in Modern React',
+    reading_time: 5,
+    views_count: 140,
+    published_at: new Date().toISOString(),
+    category: {
+      id: 1,
+      name: 'Search Engine Optimization',
+      slug: 'search-engine-optimization',
+    },
+  },
+  {
+    id: 2,
+    title: 'Why Laravel & React is the Ideal Architecture for High-Growth Apps',
+    slug: 'why-laravel-and-react-architecture',
+    excerpt:
+      'Combining Laravel\'s rock-solid backend capabilities with React\'s reactive user interface creates an unstoppable stack for scaling modern platforms.',
+    content: '',
+    featured_image:
+      'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80',
+    featured_image_alt: 'Why Laravel & React is the Ideal Architecture',
+    reading_time: 6,
+    views_count: 220,
+    published_at: new Date().toISOString(),
+    category: {
+      id: 2,
+      name: 'Web Development',
+      slug: 'web-development',
+    },
+  },
+  {
+    id: 3,
+    title: 'Scaling AI & Automation Systems for Modern Business',
+    slug: 'scaling-ai-automation-systems',
+    excerpt:
+      'Discover actionable strategies to implement automated workflows and AI pipelines that accelerate digital performance and reduce operational overhead.',
+    content: '',
+    featured_image:
+      'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=800&q=80',
+    featured_image_alt: 'Scaling AI & Automation Systems',
+    reading_time: 4,
+    views_count: 310,
+    published_at: new Date().toISOString(),
+    category: {
+      id: 3,
+      name: 'AI & Automation',
+      slug: 'ai-automation',
+    },
+  },
+];
 
-  // If no blogs yet from backend, we display a fallback or null
-  if (!blogs || blogs.length === 0) {
-    return null;
+export async function BlogPreview() {
+  let blogs: BlogPost[] = [];
+  try {
+    const res = await fetchBlogList({ per_page: 3 });
+    if (res && Array.isArray(res.blogs) && res.blogs.length > 0) {
+      blogs = res.blogs;
+    }
+  } catch {
+    blogs = [];
   }
+
+  const displayBlogs = blogs.length > 0 ? blogs : FALLBACK_BLOGS;
 
   return (
     <section
@@ -45,7 +110,7 @@ export async function BlogPreview() {
             BLOG CARDS 3-COLUMN GRID
             ========================================================================= */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 relative z-10">
-          {blogs.map((blog: BlogPost, idx: number) => {
+          {displayBlogs.map((blog: BlogPost, idx: number) => {
             const formattedDate = blog.published_at
               ? new Date(blog.published_at).toLocaleDateString('en-US', {
                   month: 'short',
@@ -53,6 +118,21 @@ export async function BlogPreview() {
                   year: 'numeric',
                 })
               : 'Recent';
+
+            const hasValidImage =
+              Boolean(blog.featured_image) &&
+              typeof blog.featured_image === 'string' &&
+              (blog.featured_image.startsWith('http://') ||
+                blog.featured_image.startsWith('https://') ||
+                blog.featured_image.startsWith('/')) &&
+              blog.featured_image.length > 8 &&
+              !blog.featured_image.toLowerCase().endsWith('test');
+
+            const fallbackImage =
+              FALLBACK_BLOGS[idx % FALLBACK_BLOGS.length]?.featured_image ||
+              'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80';
+
+            const displayImage = hasValidImage ? blog.featured_image! : fallbackImage;
 
             return (
               <article
@@ -70,29 +150,12 @@ export async function BlogPreview() {
                     href={`/blog/${blog.slug}`}
                     className="block relative w-full h-[190px] xs:h-[210px] overflow-hidden bg-black"
                   >
-                    {blog.featured_image ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={blog.featured_image}
-                        alt={blog.featured_image_alt || blog.title}
-                        className="w-full h-full object-cover object-center filter contrast-105 brightness-100 group-hover:scale-105 transition-transform duration-700 ease-out"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#061d0b] via-[#031206] to-[#010602] flex items-center justify-center">
-                        <svg
-                          className="w-12 h-12 text-[#2ABD00]/30"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                        >
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                          <polyline points="14 2 14 8 20 8" />
-                          <line x1="16" y1="13" x2="8" y2="13" />
-                          <line x1="16" y1="17" x2="8" y2="17" />
-                        </svg>
-                      </div>
-                    )}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={displayImage}
+                      alt={blog.featured_image_alt || blog.title}
+                      className="w-full h-full object-cover object-center filter contrast-105 brightness-100 group-hover:scale-105 transition-transform duration-700 ease-out"
+                    />
                     {/* Dark gradient overlay for contrast */}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#020b04] via-[#020b04]/40 to-transparent pointer-events-none" />
 

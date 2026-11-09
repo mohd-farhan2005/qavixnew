@@ -139,6 +139,57 @@ export interface ContactResponse {
   data?: unknown;
 }
 
+export interface ApiTeamMember {
+  id: number | string;
+  name: string;
+  position?: string;
+  role?: string;
+  email?: string;
+  photo?: string;
+  photo_url?: string;
+  image?: string;
+  order?: number;
+  is_active?: boolean;
+}
+
+export interface TeamApiResponse {
+  success: boolean;
+  count?: number;
+  data: ApiTeamMember[];
+}
+
+export const LOCAL_TEAM_CUTOUTS: Record<string, string> = {
+  'zack hill': '/images/team/team_zack.webp',
+  'arlton lowry': '/images/team/team_arlton.webp',
+  'sarah devine': '/images/team/team_sarah.webp',
+  'will carter': '/images/team/team_will.webp',
+  'calvin bramlett': '/images/team/team_calvin.webp',
+  correne: '/images/team/team_correne.webp',
+  john: '/images/team/team_john.webp',
+  marcus: '/images/team/team_marcus.webp',
+};
+
+/**
+ * Resolves the member image:
+ * Prefers the transparent cutout portrait matching the reference design.
+ * If a custom transparent cutout was uploaded to the backend, it uses that.
+ */
+export function resolveMemberImage(name: string, photoUrl?: string | null): string {
+  const normalized = (name || '').toLowerCase().trim();
+  for (const [key, path] of Object.entries(LOCAL_TEAM_CUTOUTS)) {
+    if (normalized.includes(key) || key.includes(normalized)) {
+      return path;
+    }
+  }
+
+  // If the backend has a custom non-Unsplash uploaded cutout
+  if (photoUrl && !photoUrl.includes('images.unsplash.com')) {
+    return photoUrl;
+  }
+
+  return photoUrl || '/images/team/team_zack.webp';
+}
+
 /** Safe fetch helper with timeout and graceful error swallowing */
 async function safeFetch<T>(
   url: string,
@@ -306,6 +357,32 @@ export async function submitContact(formData: ContactFormData): Promise<ContactR
 }
 
 /**
+ * Fetch team members from backend (/api/team with fallback to /api/team-members).
+ */
+export async function fetchTeamMembers(timeoutMs = 8000): Promise<ApiTeamMember[]> {
+  const json = await safeFetch<TeamApiResponse>(
+    `${API_BASE_URL}/team`,
+    { headers: { Accept: 'application/json' } },
+    timeoutMs
+  );
+  if (json && json.success && Array.isArray(json.data) && json.data.length > 0) {
+    return json.data;
+  }
+
+  // Fallback to alias if /api/team fails or returns empty
+  const aliasJson = await safeFetch<TeamApiResponse>(
+    `${API_BASE_URL}/team-members`,
+    { headers: { Accept: 'application/json' } },
+    timeoutMs
+  );
+  if (aliasJson && aliasJson.success && Array.isArray(aliasJson.data) && aliasJson.data.length > 0) {
+    return aliasJson.data;
+  }
+
+  return [];
+}
+
+/**
  * Convenience API client object matching the user documentation.
  */
 export const api = {
@@ -318,5 +395,6 @@ export const api = {
   getCategories: () => fetchCategories(),
   getPageSeo: (path: string) => fetchPageSeo(path),
   getGlobalSeo: () => safeFetch<{ success: boolean; data: unknown }>(`${API_BASE_URL}/seo-settings`),
+  getTeam: (timeoutMs?: number) => fetchTeamMembers(timeoutMs),
   submitContact: (formData: ContactFormData) => submitContact(formData),
 };

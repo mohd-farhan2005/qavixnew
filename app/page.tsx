@@ -179,8 +179,8 @@ export default function Home() {
       */}
       <WhyQavyx />
       <WhoWeServe />
-      <BlogPreview />
       <SiteIndex />
+      <BlogPreview />
       <HomeFaqWrapper />
       <FinalCta />
     </main>
